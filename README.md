@@ -119,9 +119,20 @@ data/                 Example inputs
 
 - Supported image formats include: .jpg, .jpeg, .png, .tif, .tiff, .bmp, .webp
 - Browser sessions are in-memory for the web UI and reset on page reload
+- The tracked sample image in `data/` is a synthetic demo image with no GPS metadata
 
 ## Static Hosting Notes
 
 - `index.html` is the single source of truth for the web UI entrypoint.
 - `static/client-app.js` contains client-only processing and interaction logic.
+- `static/vendor/jszip-3.10.1.min.js` is vendored locally to avoid runtime CDN dependency.
 - No web API routes are required for GitHub Pages hosting.
+
+## Public Repo Checklist
+
+Before publishing, verify the following:
+
+1. No secrets are committed (`.env`, API keys, tokens, private keys).
+2. No personal/private media is tracked in `data/` (use demo assets only).
+3. Local-only folders remain ignored (`.venv/`, `.sessions/`, caches, outputs).
+4. Dependencies are pinned and reviewed periodically for security updates.
