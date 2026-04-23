@@ -975,7 +975,7 @@
     setTintValue(redTintRange, redTintInput, redTintBadge, redTintRange.value);
     setTintValue(greenTintRange, greenTintInput, greenTintBadge, greenTintRange.value);
     setTintValue(blueTintRange, blueTintInput, blueTintBadge, blueTintRange.value);
-    activateTab("mode");
+    activateTab("adjustment");
     updateButtons();
     setPendingChanges(false);
     refreshPreview();
