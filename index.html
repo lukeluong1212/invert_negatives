@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Negative Review Lab</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #12161d;
+            --panel: rgba(24, 30, 40, 0.92);
+            --panel-strong: #1b2430;
+            --ink: #e7ebf2;
+            --muted: #a4adbc;
+            --line: rgba(142, 157, 182, 0.24);
+            --accent: #d77a4f;
+            --accent-soft: #f0b898;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            --radius: 22px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(215, 122, 79, 0.22), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(104, 124, 163, 0.22), transparent 32%),
+                linear-gradient(135deg, #0f1319 0%, #161b24 55%, #1e2430 100%);
+            min-height: 100vh;
+        }
+
+        .shell {
+            width: min(1400px, calc(100vw - 32px));
+            margin: 24px auto;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .sidebar {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .title {
+            margin: 0;
+            font-size: clamp(2rem, 5vw, 3rem);
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+        }
+
+        .kicker {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .upload-box {
+            background: var(--panel-strong);
+            border: 1px dashed rgba(215, 122, 79, 0.45);
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        input[type="number"],
+        select {
+            background: rgba(16, 21, 29, 0.9);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+
+        input[type="file"],
+        input[type="number"],
+        input[type="range"],
+        select,
+        button {
+            width: 100%;
+            font: inherit;
+        }
+
+        .button-row,
+        .download-row,
+        .nav-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .action-row,
+        .preset-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 16px;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            transition: transform 140ms ease, opacity 140ms ease;
+        }
+
+        button.secondary {
+            background: #2b3442;
+            color: var(--ink);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .image-list {
+            display: grid;
+            gap: 10px;
+            max-height: 42vh;
+            overflow: auto;
+            padding-right: 6px;
+        }
+
+        .viewer-toggle {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+        }
+
+        .viewer-toggle label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .image-chip {
+            border: 1px solid var(--line);
+            background: rgba(18, 24, 33, 0.72);
+            border-radius: 16px;
+            padding: 12px 14px;
+            text-align: left;
+        }
+
+        .image-chip.active {
+            border-color: var(--accent);
+            background: rgba(215, 122, 79, 0.18);
+        }
+
+        .original-scan-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .original-scan-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .original-scan-toggle {
+            width: 48px;
+            height: 24px;
+            border-radius: 999px;
+            background: rgba(215, 122, 79, 0.2);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+        }
+
+        .original-scan-toggle.enabled {
+            background: rgba(215, 122, 79, 0.62);
+        }
+
+        .original-scan-toggle-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f4f7fc;
+            transition: transform 0.2s;
+        }
+
+        .original-scan-toggle.enabled .original-scan-toggle-dot {
+            transform: translateX(24px);
+        }
+
+        .workspace {
+            padding: 24px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .tabs {
+            display: grid;
+            gap: 12px;
+        }
+
+        .tab-list {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .tab-button {
+            background: rgba(36, 45, 59, 0.9);
+            color: var(--ink);
+            border: 1px solid rgba(142, 157, 182, 0.3);
+            padding: 10px 14px;
+        }
+
+        .tab-button.active {
+            background: var(--accent);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-panel {
+            display: none;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(14, 19, 27, 0.72);
+            padding: 14px;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            align-items: end;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .range-wrap {
+            display: grid;
+            grid-template-columns: 1fr 92px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .range-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .value-badge {
+            min-width: 64px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(215, 122, 79, 0.22);
+            color: var(--ink);
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tool-panel {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(14, 19, 27, 0.72);
+        }
+
+        .tool-panel h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--muted);
+            font-weight: normal;
+        }
+
+        .pending-row {
+            min-height: 22px;
+            display: flex;
+            align-items: center;
+        }
+
+        .pending-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-size: 0.88rem;
+        }
+
+        .pending-indicator.visible {
+            display: inline-flex;
+        }
+
+        .pending-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 5px rgba(215, 122, 79, 0.24);
+        }
+
+        .viewer {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .viewer.original-minimized #originalScanFrame {
+            display: none;
+        }
+
+        .viewer.original-minimized #positivePreviewFrame {
+            grid-column: 1 / -1;
+        }
+
+        .frame {
+            background: rgba(17, 23, 33, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px;
+            min-height: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .frame h2 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: normal;
+            color: var(--muted);
+        }
+
+        .frame img {
+            width: 100%;
+            height: min(62vh, 720px);
+            object-fit: contain;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(28, 37, 50, 0.65), rgba(36, 47, 63, 0.82));
+        }
+
+
+
+        .preview-wrap {
+            position: relative;
+            flex: 1;
+            display: flex;
+        }
+
+        .processing-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: rgba(8, 12, 18, 0.82);
+            color: var(--ink);
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+        }
+
+        .processing-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(215, 122, 79, 0.28);
+            border-top-color: var(--accent);
+            animation: spin 0.85s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status {
+            min-height: 24px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        @media (max-width: 1100px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .viewer,
+            .control-grid,
+            .tab-list {
+                grid-template-columns: 1fr;
+            }
+
+            .image-list {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="panel sidebar">
+            <div>
+                <p class="kicker">Multi-image negative conversion</p>
+                <h1 class="title">Negative<br>Review Lab</h1>
+            </div>
+
+            <p class="kicker">Upload a batch, step through each frame, tune percentile and exposure, then download one image or the whole session as a ZIP.</p>
+
+            <div class="viewer-toggle">
+                <label>
+                    <span>Show Original scan</span>
+                    <button id="originalScanToggle" class="original-scan-toggle enabled" type="button" aria-pressed="true" title="Toggle original scan visibility">
+                        <span class="original-scan-toggle-dot"></span>
+                    </button>
+                </label>
+            </div>
+
+            <div class="upload-box">
+                <label>
+                    Upload scans
+                    <input id="fileInput" type="file" accept="image/*" multiple>
+                </label>
+                <div class="button-row" style="margin-top: 14px;">
+                    <button id="uploadButton">Create Session</button>
+                    <button id="clearButton" class="secondary" type="button">Clear</button>
+                </div>
+            </div>
+
+            <div class="status" id="statusText">No session loaded.</div>
+
+            <div class="meta">
+                <span id="counterText">0 images</span>
+                <span id="currentName">No selection</span>
+            </div>
+
+            <div class="nav-row">
+                <button id="prevButton" class="secondary" type="button" disabled>Previous</button>
+                <button id="nextButton" class="secondary" type="button" disabled>Next</button>
+            </div>
+
+            <div class="download-row">
+                <button id="downloadCurrentButton" type="button" disabled>Download Current</button>
+                <button id="downloadZipButton" type="button" disabled>Download ZIP</button>
+            </div>
+
+            <div class="image-list" id="imageList"></div>
+        </aside>
+
+        <main class="panel workspace">
+            <section class="viewer">
+                <div class="frame" id="originalScanFrame">
+                    <h2>Original scan</h2>
+                    <img id="originalImage" alt="Original preview">
+                </div>
+                <div class="frame" id="positivePreviewFrame">
+                    <h2>Positive preview</h2>
+                    <div class="preview-wrap">
+                        <img id="previewImage" alt="Processed preview">
+                        <div class="processing-overlay" id="processingOverlay">
+                            <span class="spinner" aria-hidden="true"></span>
+                            <span id="processingText">Processing preview...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tabs">
+                <div class="tab-list" role="tablist" aria-label="Control Tabs">
+                    <button id="tabMode" class="tab-button active" type="button" role="tab" aria-selected="true" data-tab="mode">Mode</button>
+                    <button id="tabInvert" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="invert">Invert</button>
+                    <button id="tabAdjustment" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="adjustment">Adjustment</button>
+                    <button id="tabRgb" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="rgb">RGB</button>
+                </div>
+
+                    <div id="panelMode" class="tab-panel active" role="tabpanel" data-panel="mode">
+                        <div class="control-grid">
+                            <label>
+                                Mode
+                                <select id="modeSelect">
+                                    <option value="auto">Auto detect</option>
+                                    <option value="color">Color negative</option>
+                                    <option value="bw">Black and white</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panelInvert" class="tab-panel" role="tabpanel" data-panel="invert">
+                        <div class="control-grid">
+                            <label>
+                                <span class="range-header">
+                                    <span>Percentile</span>
+                                    <span class="value-badge" id="percentileBadge">0.5</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="percentileRange" type="range" min="0" max="5" step="0.1" value="0.5">
+                                    <input id="percentileInput" type="number" min="0" max="5" step="0.1" value="0.5">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panelAdjustment" class="tab-panel" role="tabpanel" data-panel="adjustment">
+                        <div class="control-grid">
+                            <label>
+                                <span class="range-header">
+                                    <span>Exposure stops</span>
+                                    <span class="value-badge" id="exposureBadge">0.0</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="exposureRange" type="range" min="-4" max="4" step="0.1" value="0">
+                                    <input id="exposureInput" type="number" min="-4" max="4" step="0.1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>White balance</span>
+                                    <span class="value-badge" id="whiteBalanceBadge">0</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="whiteBalanceRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="whiteBalanceInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Contrast</span>
+                                    <span class="value-badge" id="contrastBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="contrastRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="contrastInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Saturation</span>
+                                    <span class="value-badge" id="saturationBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="saturationRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="saturationInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Clarity</span>
+                                    <span class="value-badge" id="clarityBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="clarityRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="clarityInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panelRgb" class="tab-panel" role="tabpanel" data-panel="rgb">
+                        <div class="control-grid">
+                            <label>
+                                <span class="range-header">
+                                    <span>Red tint</span>
+                                    <span class="value-badge" id="redTintBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="redTintRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="redTintInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Green tint</span>
+                                    <span class="value-badge" id="greenTintBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="greenTintRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="greenTintInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Blue tint</span>
+                                    <span class="value-badge" id="blueTintBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="blueTintRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="blueTintInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+                        </div>
+                        <div class="preset-row" style="margin-top: 14px;">
+                            <button id="presetWarmButton" type="button">Warm</button>
+                            <button id="presetCoolButton" type="button">Cool</button>
+                            <button id="presetNeutralButton" type="button">Neutral</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tool-panel">
+                    <h3>Quick Actions</h3>
+                    <div class="action-row">
+                        <button id="resetButton" class="secondary" type="button">Reset</button>
+                        <button id="applyAllButton" class="secondary" type="button">Apply To All</button>
+                        <button id="applySettingsButton" class="secondary" type="button">Apply Settings</button>
+                    </div>
+                    <div class="button-row">
+                        <button id="undoButton" class="secondary" type="button">Undo</button>
+                    </div>
+                    <div class="pending-row">
+                        <span id="pendingIndicator" class="pending-indicator" aria-live="polite">
+                            <span class="pending-dot" aria-hidden="true"></span>
+                            Unsaved changes
+                        </span>
+                    </div>
+                </section>
+
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="static/client-app.js"></script>
+</body>
+</html>

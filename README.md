@@ -8,12 +8,12 @@ Convert scanned film negatives to positive images using either:
 
 ## Features
 
-- Batch upload and per-image settings
+- Batch upload and per-image settings (client-side in browser)
 - Auto, color, and black-and-white modes
 - Percentile stretch, exposure, and white balance controls
 - RGB tint controls (red, green, blue)
 - Undo for image settings
-- Download current image or full session ZIP
+- Download current image or full session ZIP (generated in browser)
 - Original scan visibility toggle in the sidebar
 - Desktop actions: Apply To All, Undo, and Reset
 
@@ -40,7 +40,21 @@ uvicorn app:app --reload
 
 Then open:
 
-- http://127.0.0.1:8000/
+- [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+
+The web flow now runs image processing on client resources (browser CPU and memory). FastAPI is used as a lightweight local/static host during transition.
+
+## Host as a Static Site (GitHub Pages)
+
+The web app can be hosted as a static site using the root [index.html](index.html) and [static/client-app.js](static/client-app.js).
+
+1. Push your latest changes to the `main` branch.
+2. In GitHub, open Settings -> Pages.
+3. Under Build and deployment, set Source to Deploy from a branch.
+4. Select branch `main` and folder `/ (root)`.
+5. Save and wait for Pages to publish.
+
+After publish, your site URL will be shown in Pages settings.
 
 ## Run the Standalone Desktop App
 
@@ -88,16 +102,15 @@ input...              Input negative file(s)
 ## Project Structure
 
 ```text
-app.py                FastAPI app and API routes
+app.py                Thin FastAPI static host (index + static assets + health check)
+index.html            Static web app entrypoint for local host and GitHub Pages
 desktop_app.py        Desktop app entry point
 invert_negative.py    CLI entry point
 image_processing.py   Compatibility shim to shared core
 invertneg/core/       Shared processing + models
-invertneg/services/   Shared session/workspace and rendering services
+invertneg/services/   Shared Python services used by desktop/CLI paths
 invertneg/desktop/    Standalone PySide6 UI
-templates/index.html  Web UI
 static/               Static assets
-.sessions/            Runtime session storage
 results/              Output images
 data/                 Example inputs
 ```
@@ -105,4 +118,10 @@ data/                 Example inputs
 ## Notes
 
 - Supported image formats include: .jpg, .jpeg, .png, .tif, .tiff, .bmp, .webp
-- Session files are stored under .sessions and are recreated at runtime
+- Browser sessions are in-memory for the web UI and reset on page reload
+
+## Static Hosting Notes
+
+- `index.html` is the single source of truth for the web UI entrypoint.
+- `static/client-app.js` contains client-only processing and interaction logic.
+- No web API routes are required for GitHub Pages hosting.
