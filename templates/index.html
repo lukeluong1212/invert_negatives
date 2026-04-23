@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Negative Review Lab</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #12161d;
+            --panel: rgba(24, 30, 40, 0.92);
+            --panel-strong: #1b2430;
+            --ink: #e7ebf2;
+            --muted: #a4adbc;
+            --line: rgba(142, 157, 182, 0.24);
+            --accent: #d77a4f;
+            --accent-soft: #f0b898;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+            --radius: 22px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(215, 122, 79, 0.22), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(104, 124, 163, 0.22), transparent 32%),
+                linear-gradient(135deg, #0f1319 0%, #161b24 55%, #1e2430 100%);
+            min-height: 100vh;
+        }
+
+        .shell {
+            width: min(1400px, calc(100vw - 32px));
+            margin: 24px auto;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .sidebar {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .title {
+            margin: 0;
+            font-size: clamp(2rem, 5vw, 3rem);
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+        }
+
+        .kicker {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .upload-box {
+            background: var(--panel-strong);
+            border: 1px dashed rgba(215, 122, 79, 0.45);
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        input[type="number"],
+        select {
+            background: rgba(16, 21, 29, 0.9);
+            color: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 10px;
+        }
+
+        input[type="file"],
+        input[type="number"],
+        input[type="range"],
+        select,
+        button {
+            width: 100%;
+            font: inherit;
+        }
+
+        .button-row,
+        .download-row,
+        .nav-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .action-row,
+        .preset-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 16px;
+            background: var(--accent);
+            color: white;
+            cursor: pointer;
+            transition: transform 140ms ease, opacity 140ms ease;
+        }
+
+        button.secondary {
+            background: #2b3442;
+            color: var(--ink);
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .image-list {
+            display: grid;
+            gap: 10px;
+            max-height: 42vh;
+            overflow: auto;
+            padding-right: 6px;
+        }
+
+        .viewer-toggle {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+        }
+
+        .viewer-toggle label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .image-chip {
+            border: 1px solid var(--line);
+            background: rgba(18, 24, 33, 0.72);
+            border-radius: 16px;
+            padding: 12px 14px;
+            text-align: left;
+        }
+
+        .image-chip.active {
+            border-color: var(--accent);
+            background: rgba(215, 122, 79, 0.18);
+        }
+
+        .original-scan-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .original-scan-toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .original-scan-toggle {
+            width: 48px;
+            height: 24px;
+            border-radius: 999px;
+            background: rgba(215, 122, 79, 0.2);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.2s;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+        }
+
+        .original-scan-toggle.enabled {
+            background: rgba(215, 122, 79, 0.62);
+        }
+
+        .original-scan-toggle-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f4f7fc;
+            transition: transform 0.2s;
+        }
+
+        .original-scan-toggle.enabled .original-scan-toggle-dot {
+            transform: translateX(24px);
+        }
+
+        #cropCanvas {
+            width: 100%;
+            height: 300px;
+            border-radius: 14px;
+            border: 2px dashed var(--line);
+            background: rgba(16, 22, 31, 0.76);
+            cursor: crosshair;
+            display: block;
+        }
+
+        .crop-info {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+
+        .crop-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .workspace {
+            padding: 24px;
+            display: grid;
+            gap: 20px;
+        }
+
+        .tabs {
+            display: grid;
+            gap: 12px;
+        }
+
+        .tab-list {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .tab-button {
+            background: rgba(36, 45, 59, 0.9);
+            color: var(--ink);
+            border: 1px solid rgba(142, 157, 182, 0.3);
+            padding: 10px 14px;
+        }
+
+        .tab-button.active {
+            background: var(--accent);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-panel {
+            display: none;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(14, 19, 27, 0.72);
+            padding: 14px;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        #tabCrop,
+        #panelCrop {
+            display: none;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            align-items: end;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .range-wrap {
+            display: grid;
+            grid-template-columns: 1fr 92px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .range-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .value-badge {
+            min-width: 64px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(215, 122, 79, 0.22);
+            color: var(--ink);
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tool-panel {
+            display: grid;
+            gap: 10px;
+            padding: 14px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: rgba(14, 19, 27, 0.72);
+        }
+
+        .tool-panel h3 {
+            margin: 0;
+            font-size: 0.95rem;
+            color: var(--muted);
+            font-weight: normal;
+        }
+
+        .pending-row {
+            min-height: 22px;
+            display: flex;
+            align-items: center;
+        }
+
+        .pending-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-size: 0.88rem;
+        }
+
+        .pending-indicator.visible {
+            display: inline-flex;
+        }
+
+        .pending-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 5px rgba(215, 122, 79, 0.24);
+        }
+
+        .viewer {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .viewer.original-minimized #originalScanFrame {
+            display: none;
+        }
+
+        .viewer.original-minimized #positivePreviewFrame {
+            grid-column: 1 / -1;
+        }
+
+        .frame {
+            background: rgba(17, 23, 33, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 14px;
+            min-height: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .frame h2 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: normal;
+            color: var(--muted);
+        }
+
+        .frame img {
+            width: 100%;
+            height: min(62vh, 720px);
+            object-fit: contain;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(28, 37, 50, 0.65), rgba(36, 47, 63, 0.82));
+        }
+
+
+
+        .preview-wrap {
+            position: relative;
+            flex: 1;
+            display: flex;
+        }
+
+        .processing-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 14px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: rgba(8, 12, 18, 0.82);
+            color: var(--ink);
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+        }
+
+        .processing-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(215, 122, 79, 0.28);
+            border-top-color: var(--accent);
+            animation: spin 0.85s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status {
+            min-height: 24px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        @media (max-width: 1100px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .viewer,
+            .control-grid,
+            .tab-list {
+                grid-template-columns: 1fr;
+            }
+
+            .image-list {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <aside class="panel sidebar">
+            <div>
+                <p class="kicker">Multi-image negative conversion</p>
+                <h1 class="title">Negative<br>Review Lab</h1>
+            </div>
+
+            <p class="kicker">Upload a batch, step through each frame, tune percentile and exposure, then download one image or the whole session as a ZIP.</p>
+
+            <div class="viewer-toggle">
+                <label>
+                    <span>Show Original scan</span>
+                    <button id="originalScanToggle" class="original-scan-toggle enabled" type="button" aria-pressed="true" title="Toggle original scan visibility">
+                        <span class="original-scan-toggle-dot"></span>
+                    </button>
+                </label>
+            </div>
+
+            <div class="upload-box">
+                <label>
+                    Upload scans
+                    <input id="fileInput" type="file" accept="image/*" multiple>
+                </label>
+                <div class="button-row" style="margin-top: 14px;">
+                    <button id="uploadButton">Create Session</button>
+                    <button id="clearButton" class="secondary" type="button">Clear</button>
+                </div>
+            </div>
+
+            <div class="status" id="statusText">No session loaded.</div>
+
+            <div class="meta">
+                <span id="counterText">0 images</span>
+                <span id="currentName">No selection</span>
+            </div>
+
+            <div class="nav-row">
+                <button id="prevButton" class="secondary" type="button" disabled>Previous</button>
+                <button id="nextButton" class="secondary" type="button" disabled>Next</button>
+            </div>
+
+            <div class="download-row">
+                <button id="downloadCurrentButton" type="button" disabled>Download Current</button>
+                <button id="downloadZipButton" type="button" disabled>Download ZIP</button>
+            </div>
+
+            <div class="image-list" id="imageList"></div>
+        </aside>
+
+        <main class="panel workspace">
+            <section class="tabs">
+                <div class="tab-list" role="tablist" aria-label="Control Tabs">
+                    <button id="tabMode" class="tab-button active" type="button" role="tab" aria-selected="true" data-tab="mode">Mode</button>
+                    <button id="tabInvert" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="invert">Invert</button>
+                    <button id="tabAdjustment" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="adjustment">Adjustment</button>
+                    <button id="tabRgb" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="rgb">RGB</button>
+                    <button id="tabCrop" class="tab-button" type="button" role="tab" aria-selected="false" data-tab="crop">Crop</button>
+                </div>
+
+                    <div id="panelMode" class="tab-panel active" role="tabpanel" data-panel="mode">
+                        <div class="control-grid">
+                            <label>
+                                Mode
+                                <select id="modeSelect">
+                                    <option value="auto">Auto detect</option>
+                                    <option value="color">Color negative</option>
+                                    <option value="bw">Black and white</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panelInvert" class="tab-panel" role="tabpanel" data-panel="invert">
+                        <div class="control-grid">
+                            <label>
+                                <span class="range-header">
+                                    <span>Percentile</span>
+                                    <span class="value-badge" id="percentileBadge">0.5</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="percentileRange" type="range" min="0" max="5" step="0.1" value="0.5">
+                                    <input id="percentileInput" type="number" min="0" max="5" step="0.1" value="0.5">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panelAdjustment" class="tab-panel" role="tabpanel" data-panel="adjustment">
+                        <div class="control-grid">
+                            <label>
+                                <span class="range-header">
+                                    <span>Exposure stops</span>
+                                    <span class="value-badge" id="exposureBadge">0.0</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="exposureRange" type="range" min="-4" max="4" step="0.1" value="0">
+                                    <input id="exposureInput" type="number" min="-4" max="4" step="0.1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>White balance</span>
+                                    <span class="value-badge" id="whiteBalanceBadge">0</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="whiteBalanceRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="whiteBalanceInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Contrast</span>
+                                    <span class="value-badge" id="contrastBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="contrastRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="contrastInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Saturation</span>
+                                    <span class="value-badge" id="saturationBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="saturationRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="saturationInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Clarity</span>
+                                    <span class="value-badge" id="clarityBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="clarityRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="clarityInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="panelRgb" class="tab-panel" role="tabpanel" data-panel="rgb">
+                        <div class="control-grid">
+                            <label>
+                                <span class="range-header">
+                                    <span>Red tint</span>
+                                    <span class="value-badge" id="redTintBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="redTintRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="redTintInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Green tint</span>
+                                    <span class="value-badge" id="greenTintBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="greenTintRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="greenTintInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+
+                            <label>
+                                <span class="range-header">
+                                    <span>Blue tint</span>
+                                    <span class="value-badge" id="blueTintBadge">0%</span>
+                                </span>
+                                <div class="range-wrap">
+                                    <input id="blueTintRange" type="range" min="-100" max="100" step="1" value="0">
+                                    <input id="blueTintInput" type="number" min="-100" max="100" step="1" value="0">
+                                </div>
+                            </label>
+                        </div>
+                        <div class="preset-row" style="margin-top: 14px;">
+                            <button id="presetWarmButton" type="button">Warm</button>
+                            <button id="presetCoolButton" type="button">Cool</button>
+                            <button id="presetNeutralButton" type="button">Neutral</button>
+                        </div>
+                    </div>
+
+                    <div id="panelCrop" class="tab-panel" role="tabpanel" data-panel="crop">
+                        <p class="crop-info">Drag to select a crop area on the image</p>
+                        <canvas id="cropCanvas"></canvas>
+                        <div class="crop-controls">
+                            <button id="cropButton" class="secondary" type="button" disabled>Apply Crop</button>
+                            <button id="cropCancelButton" class="secondary" type="button">Cancel</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="tool-panel">
+                    <h3>Quick Actions</h3>
+                    <div class="action-row">
+                        <button id="resetButton" class="secondary" type="button">Reset</button>
+                        <button id="applyAllButton" class="secondary" type="button">Apply To All</button>
+                        <button id="applySettingsButton" class="secondary" type="button">Apply Settings</button>
+                    </div>
+                    <div class="button-row">
+                        <button id="undoButton" class="secondary" type="button">Undo</button>
+                    </div>
+                    <div class="pending-row">
+                        <span id="pendingIndicator" class="pending-indicator" aria-live="polite">
+                            <span class="pending-dot" aria-hidden="true"></span>
+                            Unsaved changes
+                        </span>
+                    </div>
+                </section>
+
+            <section class="viewer">
+                <div class="frame" id="originalScanFrame">
+                    <h2>Original scan</h2>
+                    <img id="originalImage" alt="Original preview">
+                </div>
+                <div class="frame" id="positivePreviewFrame">
+                    <h2>Positive preview</h2>
+                    <div class="preview-wrap">
+                        <img id="previewImage" alt="Processed preview">
+                        <div class="processing-overlay" id="processingOverlay">
+                            <span class="spinner" aria-hidden="true"></span>
+                            <span id="processingText">Processing preview...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            sessionId: null,
+            images: [],
+            currentIndex: -1,
+            hasPendingChanges: false,
+        };
+
+        const fileInput = document.getElementById("fileInput");
+        const uploadButton = document.getElementById("uploadButton");
+        const clearButton = document.getElementById("clearButton");
+        const statusText = document.getElementById("statusText");
+        const counterText = document.getElementById("counterText");
+        const currentName = document.getElementById("currentName");
+        const imageList = document.getElementById("imageList");
+        const prevButton = document.getElementById("prevButton");
+        const nextButton = document.getElementById("nextButton");
+        const downloadCurrentButton = document.getElementById("downloadCurrentButton");
+        const downloadZipButton = document.getElementById("downloadZipButton");
+        const resetButton = document.getElementById("resetButton");
+        const applyAllButton = document.getElementById("applyAllButton");
+        const applySettingsButton = document.getElementById("applySettingsButton");
+        const undoButton = document.getElementById("undoButton");
+        const pendingIndicator = document.getElementById("pendingIndicator");
+        const presetWarmButton = document.getElementById("presetWarmButton");
+        const presetCoolButton = document.getElementById("presetCoolButton");
+        const presetNeutralButton = document.getElementById("presetNeutralButton");
+        const tabButtons = document.querySelectorAll(".tab-button");
+        const tabPanels = document.querySelectorAll(".tab-panel");
+        const modeSelect = document.getElementById("modeSelect");
+        const percentileRange = document.getElementById("percentileRange");
+        const percentileInput = document.getElementById("percentileInput");
+        const exposureRange = document.getElementById("exposureRange");
+        const exposureInput = document.getElementById("exposureInput");
+        const whiteBalanceRange = document.getElementById("whiteBalanceRange");
+        const whiteBalanceInput = document.getElementById("whiteBalanceInput");
+        const contrastRange = document.getElementById("contrastRange");
+        const contrastInput = document.getElementById("contrastInput");
+        const saturationRange = document.getElementById("saturationRange");
+        const saturationInput = document.getElementById("saturationInput");
+        const clarityRange = document.getElementById("clarityRange");
+        const clarityInput = document.getElementById("clarityInput");
+        const redTintRange = document.getElementById("redTintRange");
+        const redTintInput = document.getElementById("redTintInput");
+        const greenTintRange = document.getElementById("greenTintRange");
+        const greenTintInput = document.getElementById("greenTintInput");
+        const blueTintRange = document.getElementById("blueTintRange");
+        const blueTintInput = document.getElementById("blueTintInput");
+        const percentileBadge = document.getElementById("percentileBadge");
+        const exposureBadge = document.getElementById("exposureBadge");
+        const whiteBalanceBadge = document.getElementById("whiteBalanceBadge");
+        const contrastBadge = document.getElementById("contrastBadge");
+        const saturationBadge = document.getElementById("saturationBadge");
+        const clarityBadge = document.getElementById("clarityBadge");
+        const redTintBadge = document.getElementById("redTintBadge");
+        const greenTintBadge = document.getElementById("greenTintBadge");
+        const blueTintBadge = document.getElementById("blueTintBadge");
+        const originalImage = document.getElementById("originalImage");
+        const previewImage = document.getElementById("previewImage");
+        const processingOverlay = document.getElementById("processingOverlay");
+        const processingText = document.getElementById("processingText");
+        const originalScanToggle = document.getElementById("originalScanToggle");
+        const viewer = document.querySelector(".viewer");
+        const cropCanvas = document.getElementById("cropCanvas");
+        const cropButton = document.getElementById("cropButton");
+        const cropCancelButton = document.getElementById("cropCancelButton");
+
+        let previewRequestId = 0;
+        let cropStartX = 0, cropStartY = 0, cropEndX = 0, cropEndY = 0;
+        let isCropping = false;
+        const DEFAULT_SETTINGS = {
+            mode: "auto",
+            percentile: 0.5,
+            exposure: 0.0,
+            white_balance: 0,
+            contrast: 0,
+            saturation: 0,
+            clarity: 0,
+            red_tint: 0,
+            green_tint: 0,
+            blue_tint: 0,
+        };
+        const PRESETS = {
+            warm: { red_tint: 18, green_tint: 4, blue_tint: -12 },
+            cool: { red_tint: -12, green_tint: 0, blue_tint: 18 },
+            neutral: { red_tint: 0, green_tint: 0, blue_tint: 0 },
+        };
+
+        function setStatus(message) {
+            statusText.textContent = message;
+        }
+
+        function activateTab(name) {
+            tabButtons.forEach((button) => {
+                const isActive = button.dataset.tab === name;
+                button.classList.toggle("active", isActive);
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+            tabPanels.forEach((panel) => {
+                panel.classList.toggle("active", panel.dataset.panel === name);
+            });
+        }
+
+        function setPendingChanges(isPending) {
+            state.hasPendingChanges = isPending;
+            pendingIndicator.classList.toggle("visible", isPending);
+            updateButtons();
+        }
+
+        function markPendingChanges() {
+            if (!currentImage()) {
+                return;
+            }
+            setPendingChanges(true);
+            setStatus("Changes staged. Click Apply Settings to process.");
+        }
+
+        function clampValue(value, min, max, fallback) {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) {
+                return fallback;
+            }
+            return Math.min(Math.max(parsed, min), max);
+        }
+
+        function setProcessingState(isProcessing, message = "Processing preview...") {
+            processingOverlay.classList.toggle("visible", isProcessing);
+            processingText.textContent = message;
+        }
+
+        function setPercentileValue(value) {
+            const normalized = clampValue(value, 0, 5, 0.5).toFixed(1);
+            percentileRange.value = normalized;
+            percentileInput.value = normalized;
+            percentileBadge.textContent = normalized;
+        }
+
+        function setExposureValue(value) {
+            const normalized = clampValue(value, -4, 4, 0).toFixed(1);
+            exposureRange.value = normalized;
+            exposureInput.value = normalized;
+            exposureBadge.textContent = normalized;
+        }
+
+        function setWhiteBalanceValue(value) {
+            const normalized = Math.round(clampValue(value, -100, 100, 0));
+            whiteBalanceRange.value = normalized;
+            whiteBalanceInput.value = normalized;
+            whiteBalanceBadge.textContent = normalized;
+        }
+
+        function setContrastValue(value) {
+            const normalized = Math.round(clampValue(value, -100, 100, 0));
+            contrastRange.value = normalized;
+            contrastInput.value = normalized;
+            contrastBadge.textContent = `${normalized}%`;
+        }
+
+        function setSaturationValue(value) {
+            const normalized = Math.round(clampValue(value, -100, 100, 0));
+            saturationRange.value = normalized;
+            saturationInput.value = normalized;
+            saturationBadge.textContent = `${normalized}%`;
+        }
+
+        function setClarityValue(value) {
+            const normalized = Math.round(clampValue(value, -100, 100, 0));
+            clarityRange.value = normalized;
+            clarityInput.value = normalized;
+            clarityBadge.textContent = `${normalized}%`;
+        }
+
+        function setTintValue(rangeElement, inputElement, badgeElement, value) {
+            const normalized = Math.round(clampValue(value, -100, 100, 0));
+            rangeElement.value = normalized;
+            inputElement.value = normalized;
+            badgeElement.textContent = `${normalized}%`;
+        }
+
+        function currentImage() {
+            if (state.currentIndex < 0 || state.currentIndex >= state.images.length) {
+                return null;
+            }
+            return state.images[state.currentIndex];
+        }
+
+        function currentSettings() {
+            return {
+                mode: modeSelect.value,
+                percentile: Number(percentileRange.value),
+                exposure: Number(exposureRange.value),
+                white_balance: Number(whiteBalanceRange.value),
+                contrast: Number(contrastRange.value),
+                saturation: Number(saturationRange.value),
+                clarity: Number(clarityRange.value),
+                red_tint: Number(redTintRange.value),
+                green_tint: Number(greenTintRange.value),
+                blue_tint: Number(blueTintRange.value),
+            };
+        }
+
+        function applySettings(settings) {
+            modeSelect.value = settings.mode;
+            setPercentileValue(settings.percentile);
+            setExposureValue(settings.exposure);
+            setWhiteBalanceValue(settings.white_balance ?? 0);
+            setContrastValue(settings.contrast ?? 0);
+            setSaturationValue(settings.saturation ?? 0);
+            setClarityValue(settings.clarity ?? 0);
+            setTintValue(redTintRange, redTintInput, redTintBadge, settings.red_tint ?? 0);
+            setTintValue(greenTintRange, greenTintInput, greenTintBadge, settings.green_tint ?? 0);
+            setTintValue(blueTintRange, blueTintInput, blueTintBadge, settings.blue_tint ?? 0);
+        }
+
+
+
+        function updateButtons() {
+            const hasSession = Boolean(state.sessionId);
+            const hasImage = Boolean(currentImage());
+            const hasPreviousSettings = hasImage && currentImage().previous_settings !== null && currentImage().previous_settings !== undefined;
+            prevButton.disabled = !hasSession || state.currentIndex <= 0;
+            nextButton.disabled = !hasSession || state.currentIndex === -1 || state.currentIndex >= state.images.length - 1;
+            downloadCurrentButton.disabled = !hasImage;
+            downloadZipButton.disabled = !hasSession || state.images.length === 0;
+            resetButton.disabled = !hasImage;
+            applyAllButton.disabled = !hasImage;
+            applySettingsButton.disabled = !hasImage || !state.hasPendingChanges;
+            undoButton.disabled = !hasPreviousSettings;
+            presetWarmButton.disabled = !hasImage;
+            presetCoolButton.disabled = !hasImage;
+            presetNeutralButton.disabled = !hasImage;
+            if (!hasImage) {
+                pendingIndicator.classList.remove("visible");
+            }
+        }
+
+        function renderImageList() {
+            imageList.innerHTML = "";
+            state.images.forEach((image, index) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "image-chip" + (index === state.currentIndex ? " active" : "");
+                button.textContent = `${index + 1}. ${image.filename}`;
+                button.addEventListener("click", () => selectImage(index));
+                imageList.appendChild(button);
+            });
+        }
+
+        function updateMeta() {
+            counterText.textContent = `${state.images.length} image${state.images.length === 1 ? "" : "s"}`;
+            const image = currentImage();
+            currentName.textContent = image ? image.filename : "No selection";
+        }
+
+        function previewUrl(imageId, settings) {
+            const params = new URLSearchParams({
+                mode: settings.mode,
+                percentile: settings.percentile,
+                exposure: settings.exposure,
+                white_balance: settings.white_balance,
+                contrast: settings.contrast,
+                saturation: settings.saturation,
+                clarity: settings.clarity,
+                red_tint: settings.red_tint,
+                green_tint: settings.green_tint,
+                blue_tint: settings.blue_tint,
+                t: Date.now().toString(),
+            });
+            return `/api/sessions/${state.sessionId}/images/${imageId}/preview?${params.toString()}`;
+        }
+
+
+
+        function refreshPreview() {
+            const image = currentImage();
+            if (!image) {
+                originalImage.removeAttribute("src");
+                previewImage.removeAttribute("src");
+                setProcessingState(false);
+                updateButtons();
+                updateMeta();
+                return;
+            }
+
+            const settings = currentSettings();
+            image.settings = settings;
+            originalImage.src = `/api/sessions/${state.sessionId}/images/${image.id}/original?t=${Date.now()}`;
+            previewRequestId += 1;
+            const currentRequestId = previewRequestId;
+            setProcessingState(true, "Processing preview...");
+            setStatus(`Processing ${image.filename}...`);
+            previewImage.onload = () => {
+                if (currentRequestId !== previewRequestId) {
+                    return;
+                }
+                setProcessingState(false);
+                setStatus(`Preview ready for ${image.filename}`);
+            };
+            previewImage.onerror = () => {
+                if (currentRequestId !== previewRequestId) {
+                    return;
+                }
+                setProcessingState(false);
+                setStatus(`Preview failed for ${image.filename}`);
+            };
+            previewImage.src = previewUrl(image.id, settings);
+            renderImageList();
+            updateButtons();
+            updateMeta();
+        }
+
+        async function saveCurrentSettings() {
+            const image = currentImage();
+            if (!image) {
+                return;
+            }
+
+            const response = await fetch(`/api/sessions/${state.sessionId}/images/${image.id}/settings`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(currentSettings()),
+            });
+
+            if (!response.ok) {
+                setStatus("Failed to save image settings.");
+                return;
+            }
+
+            const payload = await response.json();
+            image.settings = payload.settings;
+            image.previous_settings = payload.previous_settings;
+            applySettings(image.settings);
+            setPendingChanges(false);
+            setStatus(`Saved settings for ${image.filename}`);
+            renderImageList();
+            updateButtons();
+        }
+
+        async function applyCurrentSettings() {
+            refreshPreview();
+            await saveCurrentSettings();
+        }
+
+        function applySettingsObject(partialSettings) {
+            const merged = {
+                ...currentSettings(),
+                ...partialSettings,
+            };
+            applySettings(merged);
+            markPendingChanges();
+        }
+
+        function resetAdjustments() {
+            if (!currentImage()) {
+                return;
+            }
+            applySettings(DEFAULT_SETTINGS);
+            markPendingChanges();
+        }
+
+        function undoSettings() {
+            const image = currentImage();
+            if (!image || !image.previous_settings) {
+                return;
+            }
+            applySettings(image.previous_settings);
+            markPendingChanges();
+            setStatus("Settings reverted to previous state.");
+        }
+
+        async function applyCurrentToAll() {
+            if (!state.sessionId || !currentImage()) {
+                return;
+            }
+
+            setStatus("Applying current settings to all images...");
+            const response = await fetch(`/api/sessions/${state.sessionId}/settings/apply-to-all`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(currentSettings()),
+            });
+
+            if (!response.ok) {
+                setStatus("Failed to apply current settings to all images.");
+                return;
+            }
+
+            const payload = await response.json();
+            state.images = payload.images;
+            renderImageList();
+            updateButtons();
+            updateMeta();
+            const image = currentImage();
+            if (image) {
+                applySettings(image.settings);
+                setPendingChanges(false);
+                refreshPreview();
+            }
+            setStatus(`Applied current settings to ${state.images.length} image${state.images.length === 1 ? "" : "s"}.`);
+        }
+
+        function selectImage(index) {
+            state.currentIndex = index;
+            const image = currentImage();
+            if (!image) {
+                return;
+            }
+            applySettings(image.settings);
+            setPendingChanges(false);
+            refreshPreview();
+            setStatus(`Reviewing ${image.filename}`);
+        }
+
+        async function uploadFiles() {
+            if (!fileInput.files.length) {
+                setStatus("Choose one or more images first.");
+                return;
+            }
+
+            const formData = new FormData();
+            Array.from(fileInput.files).forEach((file) => formData.append("files", file));
+            uploadButton.disabled = true;
+            setStatus("Uploading files and creating a session...");
+
+            try {
+                const response = await fetch("/api/sessions", { method: "POST", body: formData });
+                const payload = await response.json();
+                if (!response.ok) {
+                    throw new Error(payload.detail || "Upload failed");
+                }
+
+                state.sessionId = payload.id;
+                state.images = payload.images;
+                state.currentIndex = state.images.length ? 0 : -1;
+                renderImageList();
+                if (state.currentIndex >= 0) {
+                    applySettings(state.images[0].settings);
+                    setPendingChanges(false);
+                    refreshPreview();
+                }
+                updateButtons();
+                updateMeta();
+                setStatus(`Session ready with ${state.images.length} image${state.images.length === 1 ? "" : "s"}.`);
+            } catch (error) {
+                setStatus(error.message || "Upload failed.");
+            } finally {
+                uploadButton.disabled = false;
+            }
+        }
+
+        function clearSession() {
+            state.sessionId = null;
+            state.images = [];
+            state.currentIndex = -1;
+            setPendingChanges(false);
+            fileInput.value = "";
+            renderImageList();
+            refreshPreview();
+            setStatus("Session cleared.");
+        }
+
+        function move(delta) {
+            const nextIndex = state.currentIndex + delta;
+            if (nextIndex < 0 || nextIndex >= state.images.length) {
+                return;
+            }
+            selectImage(nextIndex);
+        }
+
+        function downloadCurrent() {
+            const image = currentImage();
+            if (!image) {
+                return;
+            }
+            window.open(`/api/sessions/${state.sessionId}/images/${image.id}/download`, "_blank");
+        }
+
+        function downloadZip() {
+            if (!state.sessionId) {
+                return;
+            }
+            window.open(`/api/sessions/${state.sessionId}/download.zip`, "_blank");
+        }
+
+        uploadButton.addEventListener("click", uploadFiles);
+        clearButton.addEventListener("click", clearSession);
+        prevButton.addEventListener("click", () => move(-1));
+        nextButton.addEventListener("click", () => move(1));
+        downloadCurrentButton.addEventListener("click", downloadCurrent);
+        downloadZipButton.addEventListener("click", downloadZip);
+        resetButton.addEventListener("click", resetAdjustments);
+        applyAllButton.addEventListener("click", applyCurrentToAll);
+        applySettingsButton.addEventListener("click", applyCurrentSettings);
+        undoButton.addEventListener("click", undoSettings);
+        presetWarmButton.addEventListener("click", () => applySettingsObject(PRESETS.warm));
+        presetCoolButton.addEventListener("click", () => applySettingsObject(PRESETS.cool));
+        presetNeutralButton.addEventListener("click", () => applySettingsObject(PRESETS.neutral));
+
+        percentileRange.addEventListener("input", () => {
+            setPercentileValue(percentileRange.value);
+            markPendingChanges();
+        });
+        percentileInput.addEventListener("input", () => {
+            setPercentileValue(percentileInput.value);
+            markPendingChanges();
+        });
+        exposureRange.addEventListener("input", () => {
+            setExposureValue(exposureRange.value);
+            markPendingChanges();
+        });
+        exposureInput.addEventListener("input", () => {
+            setExposureValue(exposureInput.value);
+            markPendingChanges();
+        });
+        whiteBalanceRange.addEventListener("input", () => {
+            setWhiteBalanceValue(whiteBalanceRange.value);
+            markPendingChanges();
+        });
+        whiteBalanceInput.addEventListener("input", () => {
+            setWhiteBalanceValue(whiteBalanceInput.value);
+            markPendingChanges();
+        });
+        contrastRange.addEventListener("input", () => {
+            setContrastValue(contrastRange.value);
+            markPendingChanges();
+        });
+        contrastInput.addEventListener("input", () => {
+            setContrastValue(contrastInput.value);
+            markPendingChanges();
+        });
+        saturationRange.addEventListener("input", () => {
+            setSaturationValue(saturationRange.value);
+            markPendingChanges();
+        });
+        saturationInput.addEventListener("input", () => {
+            setSaturationValue(saturationInput.value);
+            markPendingChanges();
+        });
+        clarityRange.addEventListener("input", () => {
+            setClarityValue(clarityRange.value);
+            markPendingChanges();
+        });
+        clarityInput.addEventListener("input", () => {
+            setClarityValue(clarityInput.value);
+            markPendingChanges();
+        });
+        redTintRange.addEventListener("input", () => {
+            setTintValue(redTintRange, redTintInput, redTintBadge, redTintRange.value);
+            markPendingChanges();
+        });
+        redTintInput.addEventListener("input", () => {
+            setTintValue(redTintRange, redTintInput, redTintBadge, redTintInput.value);
+            markPendingChanges();
+        });
+        greenTintRange.addEventListener("input", () => {
+            setTintValue(greenTintRange, greenTintInput, greenTintBadge, greenTintRange.value);
+            markPendingChanges();
+        });
+        greenTintInput.addEventListener("input", () => {
+            setTintValue(greenTintRange, greenTintInput, greenTintBadge, greenTintInput.value);
+            markPendingChanges();
+        });
+        blueTintRange.addEventListener("input", () => {
+            setTintValue(blueTintRange, blueTintInput, blueTintBadge, blueTintRange.value);
+            markPendingChanges();
+        });
+        blueTintInput.addEventListener("input", () => {
+            setTintValue(blueTintRange, blueTintInput, blueTintBadge, blueTintInput.value);
+            markPendingChanges();
+        });
+        modeSelect.addEventListener("change", markPendingChanges);
+        
+        originalScanToggle.addEventListener("click", () => {
+            const isEnabled = originalScanToggle.classList.contains("enabled");
+            originalScanToggle.classList.toggle("enabled", !isEnabled);
+            originalScanToggle.setAttribute("aria-pressed", (!isEnabled) ? "true" : "false");
+            viewer.classList.toggle("original-minimized", isEnabled);
+        });
+
+        cropCanvas.addEventListener("mousedown", (e) => {
+            isCropping = true;
+            const rect = cropCanvas.getBoundingClientRect();
+            cropStartX = e.clientX - rect.left;
+            cropStartY = e.clientY - rect.top;
+        });
+
+        cropCanvas.addEventListener("mousemove", (e) => {
+            if (!isCropping) return;
+            const rect = cropCanvas.getBoundingClientRect();
+            cropEndX = e.clientX - rect.left;
+            cropEndY = e.clientY - rect.top;
+            drawCropArea();
+        });
+
+        cropCanvas.addEventListener("mouseup", () => {
+            isCropping = false;
+            if (Math.abs(cropEndX - cropStartX) > 5 && Math.abs(cropEndY - cropStartY) > 5) {
+                cropButton.disabled = false;
+            }
+        });
+
+        cropCanvas.addEventListener("mouseleave", () => {
+            isCropping = false;
+        });
+
+        cropButton.addEventListener("click", applyCrop);
+        cropCancelButton.addEventListener("click", () => {
+            isCropping = false;
+            cropStartX = cropStartY = cropEndX = cropEndY = 0;
+            cropButton.disabled = true;
+            drawCropArea();
+            activateTab("mode");
+        });
+
+        tabButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                if (button.dataset.tab === "crop") {
+                    initCropTab();
+                }
+                activateTab(button.dataset.tab);
+            });
+        });
+
+        function drawCropArea() {
+            const ctx = cropCanvas.getContext("2d");
+            ctx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+            
+            const img = originalImage;
+            if (img && img.src) {
+                const tempImg = new Image();
+                tempImg.onload = () => {
+                    const scale = Math.min(cropCanvas.width / tempImg.width, cropCanvas.height / tempImg.height);
+                    const scaledWidth = tempImg.width * scale;
+                    const scaledHeight = tempImg.height * scale;
+                    const offsetX = (cropCanvas.width - scaledWidth) / 2;
+                    const offsetY = (cropCanvas.height - scaledHeight) / 2;
+                    
+                    ctx.drawImage(tempImg, offsetX, offsetY, scaledWidth, scaledHeight);
+                    
+                    if (cropStartX > 0 && cropStartY > 0) {
+                        ctx.strokeStyle = "rgba(177, 77, 47, 0.8)";
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(
+                            Math.min(cropStartX, cropEndX),
+                            Math.min(cropStartY, cropEndY),
+                            Math.abs(cropEndX - cropStartX),
+                            Math.abs(cropEndY - cropStartY)
+                        );
+                    }
+                };
+                tempImg.src = img.src;
+            }
+        }
+
+        function initCropTab() {
+            cropStartX = cropStartY = cropEndX = cropEndY = 0;
+            cropButton.disabled = true;
+            drawCropArea();
+        }
+
+        function applyCrop() {
+            const x = Math.min(cropStartX, cropEndX);
+            const y = Math.min(cropStartY, cropEndY);
+            const width = Math.abs(cropEndX - cropStartX);
+            const height = Math.abs(cropEndY - cropStartY);
+            
+            if (width > 0 && height > 0) {
+                setStatus("Crop applied - Click Apply Settings to save");
+                cropStartX = cropStartY = cropEndX = cropEndY = 0;
+                cropButton.disabled = true;
+                activateTab("mode");
+            }
+        }
+
+        setPercentileValue(percentileRange.value);
+        setExposureValue(exposureRange.value);
+        setWhiteBalanceValue(whiteBalanceRange.value);
+        setTintValue(redTintRange, redTintInput, redTintBadge, redTintRange.value);
+        setTintValue(greenTintRange, greenTintInput, greenTintBadge, greenTintRange.value);
+        setTintValue(blueTintRange, blueTintInput, blueTintBadge, blueTintRange.value);
+        activateTab("mode");
+        updateButtons();
+        setPendingChanges(false);
+        refreshPreview();
+    </script>
+</body>
+</html>
